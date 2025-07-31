@@ -1,4 +1,4 @@
-# LogFM The LogFileManager
+# LogFM The EdgeTX LogFileManager
 A tool to manage logfiles, recorded by the SD Logging special function
 on an [EdgeTX](https://github.com/EdgeTX/edgetx) B&W or color radio.
 
