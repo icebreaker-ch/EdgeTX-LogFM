@@ -48,3 +48,6 @@ of the number of files deleted and the saved space on the SD card.
 
 ## Installation
 Copy the file ```LogFM.lua``` and the folder ```LogFM``` to the ```/SCRIPTS/TOOLS``` folder on the SD card.
+
+## Known Problems
+You need at least EdgeTX v2.11.x to be installed on your radio, because the script uses some features of the lua 5.3 syntax.
