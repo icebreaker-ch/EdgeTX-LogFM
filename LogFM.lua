@@ -118,6 +118,7 @@ function LogFM:readLogs()
     self.root = Node.new(NodeData.create(1, NODE_TYPE.ROOT, "LogFM " .. VERSION_STRING, nil, true))
     self.nodes = { self.root }
     self.selectedIndex = 1
+    self.windowStart = 1
     self.logFiles:read()
     local index = 1
     for _, model in pairs(self.logFiles:getModels()) do
@@ -263,9 +264,9 @@ function LogFM:moveSelection(inc)
     self.nodes[index].data.selected = true
 
     if index >= self.windowStart + self.windowSize then
-        self.windowStart = move(self.windowStart, 1, 1, numNodes - self.windowSize)
+        self.windowStart = move(self.windowStart, 1, 1, numNodes - self.windowSize + 1)
     elseif index < self.windowStart then
-        self.windowStart = move(self.windowStart, -1, 1, numNodes - self.windowSize)
+        self.windowStart = move(self.windowStart, -1, 1, numNodes - self.windowSize + 1)
     end
     self.selectedIndex = index
 end
