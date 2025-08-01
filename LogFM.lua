@@ -3,7 +3,7 @@ LIB_DIR = "/SCRIPTS/TOOLS/LogFM/"
 local LogFiles = loadfile(LIB_DIR .. "logfiles.lua")()
 local Node = loadfile(LIB_DIR .. "node.lua")()
 
-local VERSION_STRING = "v0.1.1"
+local VERSION_STRING = "v1.0.0"
 
 local INDENT = 6
 local ONE_K = 1024
@@ -12,6 +12,7 @@ local ONE_M = ONE_K * ONE_K
 local DISPLAY_DELAY = 30 -- 300 ms
 
 local LEFT = 0
+local FIRST_LINE = 20
 local FONT_W
 local FONT_H
 local SMALL_FONT_W
@@ -54,6 +55,15 @@ local function s(number)
         return ""
     else
         return "s"
+    end
+end
+
+local function nextLine(start)
+    local y = start or FIRST_LINE
+    return function()
+        local current = y
+        y = y + FONT_H + 1
+        return current
     end
 end
 
@@ -145,7 +155,10 @@ end
 function LogFM:getNodeText(node)
     local data = node.data
     local text
-    if data.nodeType == NODE_TYPE.FILE then
+    if data.nodeType == NODE_TYPE.MODEL then
+        local childCount = #node:getChildren()
+        text = string.format("%s (%d)", data.name, childCount)
+    elseif data.nodeType == NODE_TYPE.FILE then
         local size = data.logFile:getSize()
         if size >= ONE_M then
             text = string.format("%s %.1fM", data.name, size / ONE_M)
@@ -215,7 +228,7 @@ function LogFM:updateUi()
     if self.state == STATE.SHOW_TREE then
         self:drawNode(self.root)
         if #self.nodes <= 1 then
-            lcd.drawText(LEFT, 20, "No logfiles found")
+            lcd.drawText(LEFT, FIRST_LINE, "No logfiles found")
         end
     elseif self.state == STATE.SHOW_CONFIRM then
         self:drawTitle()
@@ -227,31 +240,24 @@ function LogFM:updateUi()
             deleteFlags = INVERS
         end
         local deleteCount = #self.deleteQueue
-        local y = 20
-        lcd.drawText(LEFT, y, string.format("Delete %d file%s", deleteCount, s(deleteCount)), deleteFlags)
-        y = y + FONT_H + 1
-        lcd.drawText(LEFT, y, "Cancel", cancelFlags)
+        local y = nextLine()
+        lcd.drawText(LEFT, y(), string.format("Delete %d file%s", deleteCount, s(deleteCount)), deleteFlags)
+        lcd.drawText(LEFT, y(), "Cancel", cancelFlags)
     elseif self.state == STATE.DELETING then
         self:drawTitle()
         local logFile = self.deleteQueue[self.deletePos]
-        y = 20
-        lcd.drawText(LEFT, y, string.format("Deleting %d/%d", self.deletePos, #self.deleteQueue))
-        y = y + FONT_H + 1
-        lcd.drawText(LEFT, y, logFile:getModelName())
-        y = y + FONT_H + 1
-        lcd.drawText(LEFT, y, string.format("%s-%s", logFile:getDate(), logFile:getTime()))
-        y = y + FONT_H + 1
-        lcd.drawText(LEFT, y, string.format("Size: %d Byte%s", logFile:getSize(), s(logFile:getSize())))
-        y = y + FONT_H + 1
-        lcd.drawGauge(1, y, LCD_W - 2, FONT_H, self.deletePos, #self.deleteQueue)
+        local y = nextLine()
+        lcd.drawText(LEFT, y(), string.format("Deleting %d/%d", self.deletePos, #self.deleteQueue))
+        lcd.drawText(LEFT, y(), logFile:getModelName())
+        lcd.drawText(LEFT, y(), string.format("%s-%s", logFile:getDate(), logFile:getTime()))
+        lcd.drawText(LEFT, y(), string.format("Size: %d Byte%s", logFile:getSize(), s(logFile:getSize())))
+        lcd.drawGauge(1, y(), LCD_W - 2, FONT_H, self.deletePos, #self.deleteQueue)
     elseif self.state == STATE.REPORT then
         self:drawTitle()
-        y = 20
-        lcd.drawText(LEFT, y, string.format("Deleted %d file%s", self.deletedFiles, s(self.deletedFiles)))
-        y = y + FONT_H + 1
-        lcd.drawText(LEFT, y, string.format("Freed up %d Byte%s", self.deletedBytes, s(self.deletedBytes)))
-        y = y + FONT_H + 1
-        lcd.drawText(LEFT, y, "Press RTN")
+        local y = nextLine()
+        lcd.drawText(LEFT, y(), string.format("Deleted %d file%s", self.deletedFiles, s(self.deletedFiles)))
+        lcd.drawText(LEFT, y(), string.format("Freed up %d Byte%s", self.deletedBytes, s(self.deletedBytes)))
+        lcd.drawText(LEFT, y(), "Press RTN")
     end
 end
 
@@ -302,10 +308,10 @@ end
 
 function LogFM:handleShowConfirm(event)
     if event == EVT_VIRTUAL_NEXT or event == EVT_VIRTUAL_PREV then
-        if self.confirmState == CONFIRM_STATE.CANCEL_SELECTED then
-            self.confirmState = CONFIRM_STATE.DELETE_SELECTED
-        else
+        if self.confirmState == CONFIRM_STATE.DELETE_SELECTED then
             self.confirmState = CONFIRM_STATE.CANCEL_SELECTED
+        else
+            self.confirmState = CONFIRM_STATE.DELETE_SELECTED
         end
     elseif event == EVT_VIRTUAL_ENTER then
         if self.confirmState == CONFIRM_STATE.CANCEL_SELECTED then
